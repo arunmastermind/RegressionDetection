@@ -34,11 +34,15 @@ def getBuilds(buildId):
     results = conn.find({'_id': buildId, 'name': {'$regex': '(?i)(.*)zvm\-dev(.*)'}}, {'name': 1}).limit(1)
     return results
 
-def getBmarkID(bgroup, bname):
+def getBmarkID(bgroup, bname=None):
     conn = getMongoConnections('benchmarks')
-    results = conn.find({'bmark_group': {'$regex': '(?i)(.*)' + (bgroup) + '(.*)'},
+    if bname is not None:
+        results = conn.find({'bmark_group': {'$regex': '(?i)(.*)' + (bgroup) + '(.*)'},
                          'bmark_name': {'$regex': '(?i)(.*)' + (bname) + '(.*)'}},
                         {'_id': 1, 'bmark_group': 1, 'bmark_name': 1})
+    else:
+        results = conn.find({'bmark_group': {'$regex': '(?i)(.*)' + (bgroup) + '(.*)'}},
+                            {'_id': 1, 'bmark_group': 1, 'bmark_name': 1})
     return results
 
 def getResult(bmarkId, limit):
@@ -46,7 +50,8 @@ def getResult(bmarkId, limit):
     results = conn.find({'bmark_id': bmarkId}).limit(limit).sort([('t_stamp', -1)])
     return results
 
-def main(bgroup="stashing", bname="tradebeans", limit=10):
+# def main(bgroup="stashing", bname="tradebeans", limit=10):
+def main(bgroup="Hybrid-lite_Benchmarks", bname=None, limit=10):
     regresions = {}
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--bgroup', type=str, default=bgroup)
@@ -56,6 +61,7 @@ def main(bgroup="stashing", bname="tradebeans", limit=10):
 
     bmarkId = getBmarkID(args.bgroup, args.bname)
     for id in bmarkId:
+        print(id['bmark_name'])
         results = getResult(id['_id'], args.limit)
         for result in results:
             buildresult = []
@@ -66,14 +72,13 @@ def main(bgroup="stashing", bname="tradebeans", limit=10):
                     buildresult.append({i:j})
                     buildName = buildN["name"]
             regresions[buildName] = (buildresult)
-
+        print(regresions)
     return (regresions)
 
 
 if __name__ == '__main__':
     regresions = main()
     pprint.pprint(regresions)
-
 
 
 
